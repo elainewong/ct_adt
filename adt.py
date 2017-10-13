@@ -90,7 +90,8 @@ def find_and_copy_asset_path(delivery_dst, assets_files_list):
             src =  os.path.normpath(os.path.join("Z:/Projects/", j['path_cache']))
             dst_dir = os.path.normpath(os.path.join(delivery_dst, os.path.dirname(j['path_cache'])))
             print src
-            copy_files(src, dst_dir)
+            if not '.DS_Store' in j['path_cache']:
+                copy_files(src, dst_dir)
 
 #Finds the directory path for the episode in question
 def find_and_copy_episode_path(episode_name):
@@ -171,7 +172,13 @@ def copy_anim_layout_path(episode_path, episode_prefix, episode_path_list, deliv
                         lay_file_old_dpath = os.path.normpath(os.path.join(dst_episode_seq_anim, os.path.basename(latest_lay_file)))
                         shutil.copy2(latest_lay_file, dst_episode_seq_anim)
                         #note: os.rename moves the file!  Don't even let it touch the original project folder!
-                        os.rename(lay_file_old_dpath, lay_file_new_path)
+                        print lay_file_old_dpath
+                        print "new path ", lay_file_new_path
+                        #patch for weird error happening in episode 3
+                        if "sh121.v008.ma" not in lay_file_old_dpath:
+                            os.rename(lay_file_old_dpath, lay_file_new_path)
+                        else: 
+                            continue
 
 
 
@@ -186,10 +193,14 @@ def main():
     if not os.path.exists(delivery_dst):
         os.makedirs(delivery_dst)
     sg_assets = sg.find('Asset', [['project.Project.name', 'is', args.project], ['episodes.Episode.code', 'is', args.episode]], ['code', 'sg_published_files'])
-    
+    if args.project == 'Worry Eaters':
+        sg_assets_all = sg.find('Asset', [['project.Project.name', 'is', args.project], ['episodes.Episode.code', 'is', 'AllEpisode']], ['code', 'sg_published_files'])
+
     print 'start time', str(datetime.now())
     episode_path, episode_name, episode_prefix, episode_path_list = find_and_copy_episode_path(args.episode)
     find_and_copy_asset_path(delivery_dst, find_latest_asset_publish(sg_assets, delivery_dst))
+    if len(sg_assets_all) > 0:
+        find_and_copy_asset_path(delivery_dst, find_latest_asset_publish(sg_assets_all, delivery_dst))
     copy_audio_path(episode_path, episode_name, delivery_dst)
     copy_anim_layout_path(episode_path, episode_prefix, episode_path_list, delivery_dst)
     print 'end time', str(datetime.now())
